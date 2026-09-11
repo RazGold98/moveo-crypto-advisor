@@ -42,14 +42,47 @@ export class DashboardService {
     },
   ];
 
-  async getCoinPrices(coinIds: string[]) {
-    const ids = coinIds.join(',');
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+  private readonly fallbackMeme = {
+    title: 'When you buy the dip and it dips again',
+    url: 'https://placehold.co/600x400?text=Crypto+Meme',
+  };
 
-    const response = await firstValueFrom(
-      this.httpService.get<Record<string, CoinPrice>>(url),
-    );
-    return response.data;
+  private readonly symbolToId: Record<string, string> = {
+    BTC: 'bitcoin',
+    ETH: 'ethereum',
+    SOL: 'solana',
+    ADA: 'cardano',
+    XRP: 'ripple',
+    DOGE: 'dogecoin',
+    BNB: 'binancecoin',
+    DOT: 'polkadot',
+    AVAX: 'avalanche-2',
+    LTC: 'litecoin',
+    LINK: 'chainlink',
+    MATIC: 'matic-network',
+  };
+
+  private mapAssetsToIds(assets: string[]): string[] {
+    if (!assets.length) {
+      return ['bitcoin', 'ethereum'];
+    }
+    return assets.map((a) => this.symbolToId[a.toUpperCase()] ?? a.toLowerCase());
+  }
+
+  async getCoinPrices(coinIds: string[]): Promise<Record<string, CoinPrice>> {
+    const ids = coinIds.join(',');
+    const apiKey = this.configService.get<string>('COINGECKO_API_KEY');
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+    const headers = apiKey ? { 'x-cg-demo-api-key': apiKey } : {};
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<Record<string, CoinPrice>>(url, { headers }),
+      );
+      return response.data;
+    } catch {
+      return {};
+    }
   }
 
   async getMarketNews(): Promise<NewsItem[]> {
@@ -73,6 +106,7 @@ export class DashboardService {
       return this.fallbackNews;
     }
   }
+
   async getAiInsight(preferences: {
     assets: string[];
     investorType: string;
@@ -111,10 +145,6 @@ export class DashboardService {
       return fallback;
     }
   }
-  private readonly fallbackMeme = {
-    title: 'When you buy the dip and it dips again',
-    url: 'https://placehold.co/600x400?text=Crypto+Meme',
-  };
 
   async getMeme(): Promise<{ title: string; url: string }> {
     try {
@@ -127,29 +157,6 @@ export class DashboardService {
     } catch {
       return this.fallbackMeme;
     }
-  }
-  private readonly symbolToId: Record<string, string> = {
-    BTC: 'bitcoin',
-    ETH: 'ethereum',
-    SOL: 'solana',
-    ADA: 'cardano',
-    XRP: 'ripple',
-    DOGE: 'dogecoin',
-    BNB: 'binancecoin',
-    DOT: 'polkadot',
-    AVAX: 'avalanche-2',
-    LTC: 'litecoin',
-    LINK: 'chainlink',
-    MATIC: 'matic-network',
-  };
-
-  private mapAssetsToIds(assets: string[]): string[] {
-    if (!assets.length) {
-      return ['bitcoin', 'ethereum'];
-    }
-    return assets.map(
-      (a) => this.symbolToId[a.toUpperCase()] ?? a.toLowerCase(),
-    );
   }
 
   async getDashboard(preferences: {
