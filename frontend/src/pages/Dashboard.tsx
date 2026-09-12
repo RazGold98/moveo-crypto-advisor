@@ -66,7 +66,7 @@ export default function Dashboard() {
     navigate('/login');
   }
 
-  if (loading) return <div className="centered">Loading your dashboard...</div>;
+  if (loading) return <div className="centered"><div className="spinner" /></div>;
   if (error) return <div className="centered">{error}</div>;
   if (!data) return null;
 
